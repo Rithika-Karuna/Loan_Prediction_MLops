@@ -1,40 +1,26 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import joblib
-import pandas as pd
-import numpy as np
+@app.post("/predict-form", response_class=HTMLResponse)
+def predict_form(
+    ApplicantIncome: float = Form(...),
+    CoapplicantIncome: float = Form(...),
+    LoanAmount: float = Form(...),
+    Credit_History: int = Form(...)
+):
 
-app = FastAPI()
+    total_income = ApplicantIncome + CoapplicantIncome
 
-# Allow cross-origin requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],   # allow all domains
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-model = joblib.load("models/model.pkl")
-
-@app.get("/")
-def home():
-    return {"message": "Loan Prediction API Running"}
-
-@app.post("/predict")
-def predict(data: dict):
-
-    df = pd.DataFrame([data])
-
-    df["Total_Income"] = df["ApplicantIncome"] + df["CoapplicantIncome"]
-    df["Total_Income_log"] = np.log(df["Total_Income"])
-    df["LoanAmount_log"] = np.log(df["LoanAmount"])
-    df["Loan_to_Income_Ratio"] = df["LoanAmount"] / df["Total_Income"]
-
-    df = df.drop(columns=["ApplicantIncome","CoapplicantIncome","LoanAmount"])
+    df = pd.DataFrame([{
+        "ApplicantIncome": ApplicantIncome,
+        "CoapplicantIncome": CoapplicantIncome,
+        "LoanAmount": LoanAmount,
+        "Credit_History": Credit_History,
+        "Total_Income": total_income,
+        "Total_Income_log": np.log(total_income),
+        "LoanAmount_log": np.log(LoanAmount),
+        "Loan_to_Income_Ratio": LoanAmount / total_income
+    }])
 
     prediction = model.predict(df)[0]
 
     result = "Approved" if prediction == 1 else "Rejected"
 
-    return {"Loan_Status": result}
+    return f"<h2>Loan Status: {result}</h2>"
