@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import joblib
 
-# Create FastAPI app
 app = FastAPI(title="Loan Prediction API")
 
 # Load trained model
@@ -15,46 +14,69 @@ except Exception as e:
     model = None
 
 
-# Root endpoint (opens form directly)
 @app.get("/", response_class=HTMLResponse)
 def home():
     return """
     <html>
-        <head>
-            <title>Loan Prediction</title>
-        </head>
-        <body>
-            <h2>Loan Prediction Form</h2>
+    <head>
+        <title>Loan Prediction</title>
+    </head>
+    <body>
 
-            <form action="/predict" method="post">
+    <h2>Loan Prediction Form</h2>
 
-                Applicant Income:<br>
-                <input type="number" name="ApplicantIncome" required><br><br>
+    <form action="/predict" method="post">
 
-                Coapplicant Income:<br>
-                <input type="number" name="CoapplicantIncome" required><br><br>
+    Gender (0=Female,1=Male)<br>
+    <input type="number" name="Gender" required><br><br>
 
-                Loan Amount:<br>
-                <input type="number" name="LoanAmount" required><br><br>
+    Married (0=No,1=Yes)<br>
+    <input type="number" name="Married" required><br><br>
 
-                Loan Amount Term:<br>
-                <input type="number" name="Loan_Amount_Term" required><br><br>
+    Dependents (0,1,2,3)<br>
+    <input type="number" name="Dependents" required><br><br>
 
-                Credit History (0 or 1):<br>
-                <input type="number" name="Credit_History" required><br><br>
+    Education (0=Not Graduate,1=Graduate)<br>
+    <input type="number" name="Education" required><br><br>
 
-                <input type="submit" value="Predict Loan Status">
+    Self Employed (0=No,1=Yes)<br>
+    <input type="number" name="Self_Employed" required><br><br>
 
-            </form>
+    Property Area (0=Rural,1=Semiurban,2=Urban)<br>
+    <input type="number" name="Property_Area" required><br><br>
 
-        </body>
+    Applicant Income<br>
+    <input type="number" name="ApplicantIncome" required><br><br>
+
+    Coapplicant Income<br>
+    <input type="number" name="CoapplicantIncome" required><br><br>
+
+    Loan Amount<br>
+    <input type="number" name="LoanAmount" required><br><br>
+
+    Loan Amount Term<br>
+    <input type="number" name="Loan_Amount_Term" required><br><br>
+
+    Credit History (0 or 1)<br>
+    <input type="number" name="Credit_History" required><br><br>
+
+    <input type="submit" value="Predict Loan Status">
+
+    </form>
+
+    </body>
     </html>
     """
 
 
-# Prediction Endpoint
 @app.post("/predict", response_class=HTMLResponse)
 def predict(
+    Gender: int = Form(...),
+    Married: int = Form(...),
+    Dependents: int = Form(...),
+    Education: int = Form(...),
+    Self_Employed: int = Form(...),
+    Property_Area: int = Form(...),
     ApplicantIncome: float = Form(...),
     CoapplicantIncome: float = Form(...),
     LoanAmount: float = Form(...),
@@ -71,35 +93,36 @@ def predict(
     LoanAmount_log = np.log(LoanAmount)
     Loan_to_Income_Ratio = LoanAmount / Total_Income
 
-    # Create dataframe
+    # Build dataframe EXACTLY like training features
     data = pd.DataFrame([{
-        "ApplicantIncome": ApplicantIncome,
-        "CoapplicantIncome": CoapplicantIncome,
-        "LoanAmount": LoanAmount,
+        "Gender": Gender,
+        "Married": Married,
+        "Dependents": Dependents,
+        "Education": Education,
+        "Self_Employed": Self_Employed,
         "Loan_Amount_Term": Loan_Amount_Term,
         "Credit_History": Credit_History,
+        "Property_Area": Property_Area,
         "Total_Income": Total_Income,
         "Total_Income_log": Total_Income_log,
         "LoanAmount_log": LoanAmount_log,
         "Loan_to_Income_Ratio": Loan_to_Income_Ratio
     }])
 
-    # Prediction
     prediction = model.predict(data)[0]
 
     result = "Loan Approved ✅" if prediction == 1 else "Loan Rejected ❌"
 
     return f"""
     <html>
-        <body>
+    <body>
 
-            <h2>Prediction Result</h2>
-            <h3>{result}</h3>
+    <h2>Prediction Result</h2>
+    <h3>{result}</h3>
 
-            <br>
+    <br>
+    <a href="/">Predict Again</a>
 
-            <a href="/">Predict Again</a>
-
-        </body>
+    </body>
     </html>
     """
